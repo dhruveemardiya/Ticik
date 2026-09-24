@@ -95,6 +95,12 @@ def customer_upload(request):
                 for r_i, r_cells in enumerate(sh.iter_rows(values_only=True)):
                     if r_i <= h_idx and h_idx >= 0:
                         continue
+                    row_dict = {
+                        headers[ci]: ("" if ci >= len(r_cells) or r_cells[ci] is None else str(r_cells[ci]).strip())
+                        for ci in range(len(headers))
+                    }
+                    if excel_manager._is_invalid_or_header_row(row_dict, headers, n_col):
+                        continue
                     if n_idx < len(r_cells) and r_cells[n_idx]:
                         val = str(r_cells[n_idx]).strip()
                         age_val = r_cells[age_idx] if age_idx is not None and age_idx < len(r_cells) else None

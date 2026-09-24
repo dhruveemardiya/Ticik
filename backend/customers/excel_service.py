@@ -352,13 +352,31 @@ class ExcelDataManager:
 
     def _is_invalid_or_header_row(self, row_dict, headers, name_col):
         """
-        Strictly rejects rows that are table headers, sub-headers, totals, or empty rows.
+        Globally validates whether an Excel row is a genuine customer passenger record.
+        Strictly rejects:
+        1. Completely blank rows or rows with only whitespace/dashes
+        2. Rows with missing, invalid, or placeholder customer names
+        3. Table header or sub-header rows (including repeated column labels)
+        4. Section banner rows (e.g. (HEAD), (HEAD) -, TOTAL, LIST OF PASSENGERS, TICKETS DATA)
+        5. Rows with zero passenger booking substance (no age, sex, seat, ticket, train, fare, sr_no, etc.)
         """
-        if any(str(v).strip().upper().startswith("TOTAL") for v in row_dict.values()):
+        # 1. Blank check: Ensure at least one cell has meaningful content
+        non_empty_values = [
+            str(v).strip() for v in row_dict.values()
+            if v is not None and str(v).strip() and str(v).strip() not in ('—', '-', '--', 'N/A')
+        ]
+        if not non_empty_values:
             return True
 
+        # 2. Section Banner / Total / (HEAD) keywords in any cell
+        for k, v in row_dict.items():
+            v_up = str(v).strip().upper()
+            if '(HEAD)' in v_up or v_up.startswith('(HEAD)') or v_up.startswith('TOTAL') or 'LIST OF PASSENGER' in v_up or 'TICKETS DATA' in v_up:
+                return True
+
+        # 3. Customer name check
         raw_name = str(row_dict.get(name_col, "")).strip()
-        if not raw_name:
+        if not raw_name or raw_name.lower() in ('none', 'nan', 'null', 'n/a', '-', '—', '--'):
             return True
 
         name_upper = raw_name.upper()
@@ -366,17 +384,79 @@ class ExcelDataManager:
             'NAME', 'CUSTOMER NAME', 'PASSENGER NAME', 'NAME OF PASSENGER', 'PASSENGER',
             'TRAIN NO.', 'TRAIN NO', 'TRAIN NUMBER', 'SR NO.', 'SR. NO.', 'NO.',
             'DEP (T)', 'ARR (T)', 'DOJ', 'DATE OF JOURNEY', 'SEAT NO/STATUS', 'TICKET NO.',
-            'RS.', 'AMOUNT', 'TCKT SR NO.'
+            'RS.', 'AMOUNT', 'FARE', 'PRICE', 'TCKT SR NO.', 'TICKET NO. (2)', 'COLUMN'
         }
-        if name_upper in header_name_rejections:
+        if name_upper in header_name_rejections or any(name_upper.startswith(h + ' ') for h in header_name_rejections):
             return True
 
+        # 4. Repeated table header row
         header_match_count = 0
         for h in headers:
-            v = str(row_dict.get(h, "")).strip()
-            if v and v.upper() == h.strip().upper() and len(h.strip()) >= 2:
+            v = str(row_dict.get(h, "")).strip().upper()
+            h_clean = str(h).strip().upper()
+            if v and (v == h_clean or v in header_name_rejections) and len(h_clean) >= 2:
                 header_match_count += 1
         if header_match_count >= 2:
+            return True
+
+        # 5. Passenger booking substance check
+        # A valid passenger record must have at least one booking detail:
+        # Age, Sex/Gender, Seat/Status/Berth, Ticket/PNR, numeric Train Number, Fare/Amount, Passenger Sr. No., Aadhaar/Mobile, or DOJ
+        has_booking_substance = False
+        for k, v in row_dict.items():
+            if k == name_col:
+                continue
+            v_str = str(v).strip()
+            if not v_str or v_str in ('—', '-', '--', 'N/A', 'NONE'):
+                continue
+            k_up = str(k).strip().upper()
+
+            # Age
+            if 'AGE' in k_up and re.search(r'\b\d{1,3}\b', v_str):
+                has_booking_substance = True
+                break
+
+            # Sex / Gender
+            if ('SEX' in k_up or 'GENDER' in k_up) and v_str.upper() in ('M', 'F', 'MALE', 'FEMALE'):
+                has_booking_substance = True
+                break
+
+            # Seat / Status / Berth / Coach
+            if any(kw in k_up for kw in ['SEAT', 'STATUS', 'BERTH', 'COACH']) and v_str.upper() not in ('SEAT', 'STATUS', 'BERTH', 'COACH'):
+                has_booking_substance = True
+                break
+
+            # Ticket Number / PNR
+            if any(kw in k_up for kw in ['TICKET', 'TKT', 'TCKT', 'PNR']) and re.search(r'\d{3,}', v_str):
+                has_booking_substance = True
+                break
+
+            # Train Number (numeric 4 to 6 digits)
+            if 'TRAIN' in k_up and re.search(r'\d{4,6}', v_str):
+                has_booking_substance = True
+                break
+
+            # Fare / Amount / RS
+            if any(kw in k_up for kw in ['RS', 'AMOUNT', 'FARE', 'PRICE']) and re.search(r'\d+', v_str):
+                has_booking_substance = True
+                break
+
+            # Passenger serial number (1, 2, 3...)
+            if any(kw in k_up for kw in ['NO.', 'SR', 'SR. NO.']) and not any(kw in k_up for kw in ['TRAIN', 'TICKET', 'TCKT']) and v_str.isdigit():
+                has_booking_substance = True
+                break
+
+            # Aadhaar or Mobile Number
+            if any(kw in k_up for kw in ['ADHAAR', 'AADHAAR', 'MOBILE']) and re.search(r'\d{4,}', v_str):
+                has_booking_substance = True
+                break
+
+            # Date of Journey (valid date format)
+            if any(kw in k_up for kw in ['DOJ', 'DATE']) and v_str.upper() not in ('DOJ', 'DATE'):
+                has_booking_substance = True
+                break
+
+        if not has_booking_substance:
             return True
 
         return False
@@ -731,6 +811,77 @@ class ExcelDataManager:
         return self.save_multiple_excel_permanently([
             {"temp_file_path": temp_file_path, "original_filename": original_filename}
         ])
+
+    def rebuild_dataset_metadata(self):
+        """
+        Re-scans the active dataset using strict record validation,
+        pruning all blank, header, and invalid rows. Rebuilds accurate per-sheet
+        records counts, unique customer counts, total records, and updates metadata.json.
+        """
+        self.invalidate_cache()
+        records, grouped, sheets_meta, _ = self.load_all_data()
+
+        if not self.metadata_file_path.exists():
+            return None
+
+        try:
+            with open(self.metadata_file_path, 'r', encoding='utf-8') as f:
+                metadata = json.load(f)
+
+            sheet_counts = {}
+            sheet_unique_customers = {}
+            file_counts = {}
+            file_unique_customers = {}
+
+            for r in records.values():
+                f_id = r.get("file_id", "file_1")
+                s_name = r.get("sheet_name", "")
+                norm_name = r.get("normalized_name", "")
+
+                key = (f_id, s_name)
+                sheet_counts[key] = sheet_counts.get(key, 0) + 1
+                if key not in sheet_unique_customers:
+                    sheet_unique_customers[key] = set()
+                if norm_name:
+                    sheet_unique_customers[key].add(norm_name)
+
+                file_counts[f_id] = file_counts.get(f_id, 0) + 1
+                if f_id not in file_unique_customers:
+                    file_unique_customers[f_id] = set()
+                if norm_name:
+                    file_unique_customers[f_id].add(norm_name)
+
+            total_recs = 0
+            if "files" in metadata and isinstance(metadata["files"], list):
+                for fl in metadata["files"]:
+                    f_id = fl.get("file_id", "file_1")
+                    fl["records_count"] = file_counts.get(f_id, 0)
+                    fl["customer_count"] = len(file_unique_customers.get(f_id, set()))
+                    total_recs += fl["records_count"]
+
+                    for sh in fl.get("sheets", []):
+                        s_name = sh.get("name", "")
+                        sh["records_count"] = sheet_counts.get((f_id, s_name), 0)
+                        sh["unique_customers_count"] = len(sheet_unique_customers.get((f_id, s_name), set()))
+
+            if "sheets" in metadata and isinstance(metadata["sheets"], list):
+                for sh in metadata["sheets"]:
+                    f_id = sh.get("file_id", "file_1")
+                    s_name = sh.get("name", "")
+                    sh["records_count"] = sheet_counts.get((f_id, s_name), 0)
+                    sh["unique_customers_count"] = len(sheet_unique_customers.get((f_id, s_name), set()))
+
+            metadata["total_records"] = len(records)
+            metadata["customer_count"] = len(grouped)
+
+            with open(self.metadata_file_path, 'w', encoding='utf-8') as f:
+                json.dump(metadata, f, indent=2)
+
+            self.invalidate_cache()
+            return metadata
+        except Exception as e:
+            print(f"Error rebuilding metadata: {e}")
+            return None
 
     def get_status(self):
         """

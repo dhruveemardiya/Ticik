@@ -8,16 +8,16 @@
   "filename": "3 Excel Files",
   "uploaded_at": "2026-09-24 17:05:52",
   "sheet_count": 22,
-  "total_records": 1605,
-  "customer_count": 115,
+  "total_records": 1460,
+  "customer_count": 113,
   "files": [
     {
       "file_id": "file_1",
       "filename": "TICKET DATA 1.xlsx",
       "saved_file": "files/file_1_TICKET_DATA_1.xlsx",
       "sheet_count": 10,
-      "records_count": 987,
-      "customer_count": 115,
+      "records_count": 890,
+      "customer_count": 112,
       "sheets": [
         {
           "name": "Sheet1 (2)",
@@ -45,8 +45,8 @@
           "sheet_date": "",
           "sheet_dep": "Sabarmati",
           "sheet_arr": "Delhi",
-          "records_count": 284,
-          "unique_customers_count": 115,
+          "records_count": 236,
+          "unique_customers_count": 112,
           "preview_rows": [
             {
               "record_id": "Sheet1 (2)_row_4",
@@ -208,8 +208,8 @@
           "sheet_date": "",
           "sheet_dep": "Sabarmati",
           "sheet_arr": "Delhi",
-          "records_count": 283,
-          "unique_customers_count": 115,
+          "records_count": 235,
+          "unique_customers_count": 112,
           "preview_rows": [
             {
               "record_id": "Sheet1_row_4",
@@ -684,7 +684,7 @@
           "sheet_date": "",
           "sheet_dep": "Asarwa",
           "sheet_arr": "Udai Bar",
-          "records_count": 107,
+          "records_count": 106,
           "unique_customers_count": 69,
           "preview_rows": [
             {
@@ -1620,8 +1620,8 @@
       "filename": "TICKET ONEWAY.xlsx",
       "saved_file": "files/file_2_TICKET_ONEWAY.xlsx",
       "sheet_count": 9,
-      "records_count": 516,
-      "customer_count": 115,
+      "records_count": 468,
+      "customer_count": 112,
       "sheets": [
         {
           "name": "delhi to haridwar",
@@ -1799,8 +1799,8 @@
           "sheet_date": "",
           "sheet_dep": "Sabarmati",
           "sheet_arr": "Delhi",
-          "records_count": 284,
-          "unique_customers_count": 115,
+          "records_count": 236,
+          "unique_customers_count": 112,
           "file_id": "file_2",
           "file_name": "TICKET ONEWAY.xlsx"
         },
@@ -1960,8 +1960,8 @@
       "sheet_date": "",
       "sheet_dep": "Sabarmati",
       "sheet_arr": "Delhi",
-      "records_count": 284,
-      "unique_customers_count": 115,
+      "records_count": 236,
+      "unique_customers_count": 112,
       "preview_rows": [
         {
           "record_id": "Sheet1 (2)_row_4",
@@ -2123,8 +2123,8 @@
       "sheet_date": "",
       "sheet_dep": "Sabarmati",
       "sheet_arr": "Delhi",
-      "records_count": 283,
-      "unique_customers_count": 115,
+      "records_count": 235,
+      "unique_customers_count": 112,
       "preview_rows": [
         {
           "record_id": "Sheet1_row_4",
@@ -2599,7 +2599,7 @@
       "sheet_date": "",
       "sheet_dep": "Asarwa",
       "sheet_arr": "Udai Bar",
-      "records_count": 107,
+      "records_count": 106,
       "unique_customers_count": 69,
       "preview_rows": [
         {
@@ -3704,8 +3704,8 @@
       "sheet_date": "",
       "sheet_dep": "Sabarmati",
       "sheet_arr": "Delhi",
-      "records_count": 284,
-      "unique_customers_count": 115,
+      "records_count": 236,
+      "unique_customers_count": 112,
       "file_id": "file_2",
       "file_name": "TICKET ONEWAY.xlsx"
     },
