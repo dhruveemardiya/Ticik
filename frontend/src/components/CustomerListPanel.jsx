@@ -1,0 +1,108 @@
+import React from 'react';
+import { Users, User, ChevronRight, Layers, FileSpreadsheet } from 'lucide-react';
+
+export default function CustomerListPanel({
+  customers = [],
+  selectedCustomerName,
+  onSelectCustomer,
+  loading = false,
+  sheetFilter = '',
+  onSheetFilterChange,
+  sheets = []
+}) {
+  // Group sheets by original file name
+  const groupedSheets = sheets.reduce((acc, s) => {
+    const fileKey = s.file_name || 'Sheets';
+    if (!acc[fileKey]) acc[fileKey] = [];
+    acc[fileKey].push(s);
+    return acc;
+  }, {});
+
+  const totalSheetRecords = sheets.reduce((acc, s) => acc + (s.records_count || 0), 0);
+
+  return (
+    <div className="customer-list-panel glass-panel">
+      {/* Panel Header */}
+      <div className="panel-header">
+        <div className="panel-title-wrap">
+          <Users size={18} className="text-emerald" />
+          <h3 className="panel-title">Customers</h3>
+          <span className="badge badge-neutral ml-auto">
+            {customers.length.toLocaleString()} {customers.length === 1 ? 'Customer' : 'Customers'}
+          </span>
+        </div>
+
+        {/* Sheet Filter Selector (Grouped by File) */}
+        <div className="panel-sheet-filter-box">
+          <div className="sheet-select-row">
+            <Layers size={13} className="text-cyan flex-shrink-0" />
+            <select
+              className="sheet-filter-select"
+              value={sheetFilter}
+              onChange={(e) => onSheetFilterChange(e.target.value)}
+              aria-label="Filter by Sheet"
+            >
+              <option value="">All Sheets ({sheets.length} sheets • {totalSheetRecords.toLocaleString()} rows)</option>
+              {Object.entries(groupedSheets).map(([fileName, fileSheets]) => (
+                <optgroup key={fileName} label={`📁 ${fileName}`}>
+                  {fileSheets.map((s) => (
+                    <option key={`${s.file_id || ''}_${s.name}`} value={s.name}>
+                      {s.name} ({s.records_count} records)
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Unique Customer Cards List */}
+      <div className="panel-list-container">
+        {loading ? (
+          <div className="panel-loading">
+            <div className="status-dot status-dot-active mb-2" />
+            <span className="text-secondary text-xs">Loading customer directory...</span>
+          </div>
+        ) : customers.length === 0 ? (
+          <div className="panel-empty">
+            <User size={28} className="text-dim mb-2" />
+            <p className="text-secondary text-sm">No customers in this view</p>
+          </div>
+        ) : (
+          <div className="panel-cards-stack">
+            {customers.map((c, idx) => {
+              const isSelected = selectedCustomerName &&
+                selectedCustomerName.trim().toLowerCase() === c.name.trim().toLowerCase();
+
+              return (
+                <div
+                  key={c.normalized_name || c.name}
+                  className={`panel-customer-card ${isSelected ? 'panel-card-selected' : ''}`}
+                  onClick={() => onSelectCustomer(c.name)}
+                  title={`Click to view all ${c.record_count} Excel records for ${c.name}`}
+                >
+                  <div className="panel-card-header">
+                    <span className="panel-card-index">{String(idx + 1).padStart(2, '0')}</span>
+                    <h5 className="panel-card-name">{c.name}</h5>
+                    <div className="panel-card-arrow">
+                      <ChevronRight size={16} className={isSelected ? 'text-emerald' : 'text-dim'} />
+                    </div>
+                  </div>
+
+                  <div className="panel-card-body">
+                    <div className="panel-card-count-badge">
+                      <span className="text-secondary text-xs">
+                        {c.record_count} {c.record_count === 1 ? 'record' : 'records'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
