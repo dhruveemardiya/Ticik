@@ -41,6 +41,10 @@ export default function CustomerDirectoryModal({
 
   if (!isOpen) return null;
 
+  const visibleSheets = sheets.filter(
+    (s) => !s.name?.toLowerCase().includes('missing data')
+  );
+
   return (
     <div className="modal-backdrop animate-fade-in" onClick={onClose}>
       <div className="directory-modal glass-panel" onClick={(e) => e.stopPropagation()}>
@@ -48,13 +52,13 @@ export default function CustomerDirectoryModal({
         <div className="directory-header">
           <div className="directory-title-wrap">
             <div className="directory-icon-badge">
-              <Users size={22} className="text-emerald" />
+              <Users size={22} className="text-sky" />
             </div>
             <div>
               <h2 className="directory-title">Customer Directory</h2>
               <p className="directory-subtitle">
-                {totalCustomers.toLocaleString()} total customers across {sheets.length} sheet
-                {sheets.length === 1 ? '' : 's'} in saved Excel workbook
+                {totalCustomers.toLocaleString()} total customers across {visibleSheets.length} sheet
+                {visibleSheets.length === 1 ? '' : 's'} in saved Excel workbook
               </p>
             </div>
           </div>
@@ -95,7 +99,7 @@ export default function CustomerDirectoryModal({
             >
               All Sheets ({totalCustomers.toLocaleString()})
             </button>
-            {sheets.map((s) => (
+            {visibleSheets.map((s) => (
               <button
                 key={s.name}
                 type="button"

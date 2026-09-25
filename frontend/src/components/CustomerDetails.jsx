@@ -8,7 +8,9 @@ import {
   UserCheck,
   Search,
   FileSpreadsheet,
-  User
+  User,
+  Ticket,
+  ArrowLeft
 } from 'lucide-react';
 import DeleteConfirmModal from './DeleteConfirmModal';
 
@@ -316,7 +318,7 @@ export default function CustomerDetails({
   // 1. Loading State
   if (loading) {
     return (
-      <div className="details-container glass-panel animate-fade-in text-center p-8">
+      <div className="details-container details-container-light animate-fade-in text-center p-8">
         <div className="details-loading">
           <div className="status-dot status-dot-active mb-3" />
           <p className="text-secondary font-medium">Loading customer records from Excel...</p>
@@ -325,20 +327,23 @@ export default function CustomerDetails({
     );
   }
 
-  // 2. Initial Clean Empty State (Requirements 7, 10, 29, 39)
+  // 2. Clean Empty State (When NO customer is selected)
   if (!customerData || !customerData.records || customerData.records.length === 0) {
     return (
-      <div className="details-empty-state glass-panel animate-fade-in text-center">
-        <div className="empty-state-icon-wrap">
-          <UserCheck size={40} className="text-emerald" />
+      <div className="details-empty-state details-empty-state-light animate-fade-in text-center">
+        <div className="empty-state-card-visual">
+          <div className="empty-state-ticket-badge">
+            <Ticket size={38} className="empty-state-ticket-icon" />
+          </div>
+          <div className="empty-state-pulse-ring" />
         </div>
         <h3 className="empty-state-title">Select a Customer</h3>
         <p className="empty-state-text">
-          Choose a customer from the left panel or search a customer name above to view complete Excel details.
+          Choose a customer from the list to view their records.
         </p>
-        <div className="empty-state-search-hint">
-          <Search size={14} className="text-cyan inline mr-1.5" />
-          <span>🔍 You can also search a customer name above.</span>
+        <div className="empty-state-hint-pill">
+          <ArrowLeft size={13} className="text-sky mr-1.5 flex-shrink-0 animate-bounce-x" />
+          <span>Select from Customer Directory on the left</span>
         </div>
       </div>
     );
@@ -385,7 +390,7 @@ export default function CustomerDetails({
 
   return (
     <>
-      <div className="details-container glass-panel animate-fade-in">
+      <div className="details-container details-container-light animate-details-enter">
         {/* Main Customer Header (Requirements 8, 14) */}
         <div className="details-header">
           <div className="details-header-main">
@@ -394,8 +399,8 @@ export default function CustomerDetails({
           </div>
           <div className="details-header-right">
             <div className="details-record-count-badge">
-              <FileSpreadsheet size={15} className="mr-1.5 text-emerald inline flex-shrink-0" />
-              <span className="font-semibold text-emerald">
+              <FileSpreadsheet size={15} className="mr-1.5 text-sky inline flex-shrink-0" />
+              <span className="font-semibold text-sky">
                 {record_count} {record_count === 1 ? 'Excel Record' : 'Excel Records'}
               </span>
             </div>
@@ -407,7 +412,7 @@ export default function CustomerDetails({
             >
               {copiedAll ? (
                 <>
-                  <Check size={12} className="text-emerald mr-1" /> Copied All
+                  <Check size={12} className="text-sky mr-1" /> Copied All
                 </>
               ) : (
                 <>
@@ -432,7 +437,7 @@ export default function CustomerDetails({
           <div className="customer-info-section">
             <div className="section-label-bar">
               <div className="section-title-wrap">
-                <User size={14} className="text-emerald mr-1.5 flex-shrink-0" />
+                <User size={14} className="text-sky mr-1.5 flex-shrink-0" />
                 <span className="section-title">COMMON INFO</span>
               </div>
               <span className="section-subtitle">
@@ -457,7 +462,7 @@ export default function CustomerDetails({
         <div className="excel-records-section">
           <div className="section-label-bar">
             <div className="section-title-wrap">
-              <FileSpreadsheet size={14} className="text-cyan mr-1.5 flex-shrink-0" />
+              <FileSpreadsheet size={14} className="text-sky mr-1.5 flex-shrink-0" />
               <span className="section-title">RECORD INFO</span>
             </div>
             <span className="section-subtitle">
@@ -479,17 +484,17 @@ export default function CustomerDetails({
                       </span>
                       {rec.file_name && (
                         <span className="record-source-tag record-file-tag" title={`Source File: ${rec.file_name}`}>
-                          <FileSpreadsheet size={12} className="inline mr-1 text-emerald" /> {rec.file_name}
+                          <FileSpreadsheet size={12} className="inline mr-1 text-sky" /> {rec.file_name}
                         </span>
                       )}
                       <span className="record-source-tag">
-                        <Layers size={12} className="inline mr-1 text-cyan" /> {rec.sheet_name}
+                        <Layers size={12} className="inline mr-1 text-sky" /> {rec.sheet_name}
                       </span>
                       <span className="record-source-tag">
                         <Hash size={12} className="inline mr-1 text-muted" /> Row {rec.row_number}
                       </span>
                       {rec.train_no && (
-                        <span className="record-source-tag font-semibold text-emerald">
+                        <span className="record-source-tag font-semibold text-sky">
                           Train {rec.train_no}
                         </span>
                       )}
@@ -504,7 +509,7 @@ export default function CustomerDetails({
                       >
                         {isCopied ? (
                           <>
-                            <Check size={12} className="text-emerald mr-1" /> Copied
+                            <Check size={12} className="text-sky mr-1" /> Copied
                           </>
                         ) : (
                           <>

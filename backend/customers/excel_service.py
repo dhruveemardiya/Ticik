@@ -456,6 +456,11 @@ class ExcelDataManager:
                 has_booking_substance = True
                 break
 
+            # Missing Field(s) or Reason (for Missing Data sheets)
+            if any(kw in k_up for kw in ['MISSING', 'REASON']) and len(v_str) > 1:
+                has_booking_substance = True
+                break
+
         if not has_booking_substance:
             return True
 
@@ -508,12 +513,102 @@ class ExcelDataManager:
 
         return ""
 
+    def _is_passenger_block_sheet(self, sheet):
+        """
+        Detects if a sheet uses the Passenger Block format (e.g. Final_Passenger_Details.xlsx),
+        where each passenger has a header line 'Name | Age: ... | Sex: ... | Aadhaar No.: ...'
+        followed by journey rows.
+        """
+        for r in sheet.iter_rows(values_only=False, max_row=30):
+            c0 = str(self._format_cell_value(r[0])).strip() if len(r) > 0 else ""
+            if '|' in c0 and ('Age:' in c0 or 'Sex:' in c0 or 'Aadhaar' in c0):
+                return True
+        return False
+
+    def _parse_passenger_block_sheet(self, sheet, sheet_name="", filename=""):
+        """
+        Parses a passenger block sheet (such as 'Passenger Details' in Final_Passenger_Details.xlsx),
+        extracting all valid passenger journey records with exact row numbers and demographics attached.
+        """
+        headers = ['NAME', 'AGE', 'SEX', 'AADHAAR NO.', 'Date of Journey', 'Train No.', 'Departure', 'Arrival', 'Ticket No.', 'Seat No. / Status']
+        data_rows = []
+        current_p = None
+        sub_headers = None
+
+        all_rows = sheet.iter_rows(values_only=False)
+        for row_idx, r in enumerate(all_rows):
+            excel_row_num = row_idx + 1
+            c0 = str(self._format_cell_value(r[0])).strip() if len(r) > 0 else ""
+
+            # Check if row is completely empty
+            has_val = any(self._format_cell_value(cell).strip() != "" for cell in r)
+            if not has_val or c0.upper() == 'FINAL PASSENGER DETAILS':
+                continue
+
+            # Check if passenger header row: Name | Age: ... | Sex: ... | Aadhaar No.: ...
+            if '|' in c0 and ('Age:' in c0 or 'Sex:' in c0 or 'Aadhaar' in c0):
+                parts = [p.strip() for p in c0.split('|')]
+                p_name = parts[0]
+                p_age = ""
+                p_sex = ""
+                p_aadhaar = ""
+                for pt in parts[1:]:
+                    if pt.startswith('Age:'):
+                        p_age = pt.replace('Age:', '').strip()
+                    elif pt.startswith('Sex:'):
+                        p_sex = pt.replace('Sex:', '').strip()
+                    elif pt.startswith('Aadhaar No.:') or pt.startswith('Aadhaar'):
+                        p_aadhaar = pt.split(':', 1)[-1].strip()
+                if p_aadhaar in ('—', '-', '--', 'N/A', 'NA'):
+                    p_aadhaar = ""
+
+                current_p = {
+                    "name": p_name,
+                    "age": p_age,
+                    "sex": p_sex,
+                    "aadhaar": p_aadhaar
+                }
+                sub_headers = None
+                continue
+
+            # Check if sub-header row (e.g. Date of Journey | Train No. | ...)
+            if c0.lower().startswith('date of journey'):
+                sub_headers = [str(self._format_cell_value(cell)).strip() for cell in r]
+                while sub_headers and not sub_headers[-1]:
+                    sub_headers.pop()
+                continue
+
+            # If we have a current passenger, this is a journey row!
+            if current_p is not None:
+                j_headers = sub_headers or ['Date of Journey', 'Train No.', 'Departure', 'Arrival', 'Ticket No.', 'Seat No. / Status']
+                row_dict = {
+                    "NAME": current_p["name"],
+                    "AGE": current_p["age"],
+                    "SEX": current_p["sex"],
+                    "AADHAAR NO.": current_p["aadhaar"]
+                }
+                for ci, h in enumerate(j_headers):
+                    val = str(self._format_cell_value(r[ci])).strip() if ci < len(r) else ""
+                    if val.upper() == h.upper():
+                        val = ""
+                    row_dict[h] = val
+
+                data_rows.append({
+                    "row_number": excel_row_num,
+                    "data": row_dict
+                })
+
+        return 0, headers, data_rows, "", "", "", "", ""
+
     def detect_sheet_headers_and_rows(self, sheet, sheet_name="", filename=""):
         """
         Detects true header row for a sheet (skipping multi-row titles),
         extracts deduplicated headers and all non-empty data rows.
         Handles sheets without explicit headers seamlessly.
         """
+        if self._is_passenger_block_sheet(sheet):
+            return self._parse_passenger_block_sheet(sheet, sheet_name=sheet_name, filename=filename)
+
         rows = list(sheet.iter_rows(values_only=False, max_row=25))
         if not rows:
             return 0, [], [], "", "", "", "", ""
@@ -531,11 +626,14 @@ class ExcelDataManager:
                 if val:
                     non_empty_cells.append(val)
                     lower_val = val.lower()
-                    # Only score if the cell looks like a header label (not pure number)
-                    if not val.isdigit():
+                    # Only score if the cell looks like a header label (not pure number and not an explanation sentence)
+                    if not val.isdigit() and len(val) < 60 and len(val.split()) <= 6 and val not in ('—', '-', '--', 'N/A', 'NA'):
                         for kw in keywords:
                             if kw in lower_val:
                                 score += 6
+                        # Bonus if exact name header
+                        if any(lower_val == kw_name for kw_name in ['name', 'passenger name', 'customer name', 'passenger_name']):
+                            score += 15
 
             if len(non_empty_cells) >= 2:
                 score += len(non_empty_cells) * 2
@@ -716,6 +814,25 @@ class ExcelDataManager:
         """
         self.files_dir.mkdir(parents=True, exist_ok=True)
 
+        # Clean out any previous files to ensure NO old data remains
+        for old_f in self.files_dir.glob("*"):
+            if old_f.is_file():
+                try:
+                    old_f.unlink()
+                except Exception:
+                    pass
+        if self.excel_file_path.exists():
+            try:
+                self.excel_file_path.unlink()
+            except Exception:
+                pass
+        backup_p = self.customer_dir / "customers.backup.xlsx"
+        if backup_p.exists():
+            try:
+                backup_p.unlink()
+            except Exception:
+                pass
+
         saved_files_meta = []
         total_records_all = 0
         total_sheets_all = 0
@@ -811,6 +928,85 @@ class ExcelDataManager:
         return self.save_multiple_excel_permanently([
             {"temp_file_path": temp_file_path, "original_filename": original_filename}
         ])
+
+    def replace_with_single_excel(self, source_file_path, filename="Final_Passenger_Details.xlsx"):
+        """
+        Completely replaces all existing customer data with the provided single Excel file.
+        Purges old files and rebuilds everything from this new file only.
+        """
+        source_path = Path(source_file_path)
+        if not source_path.exists():
+            raise FileNotFoundError(f"Source file '{source_file_path}' does not exist.")
+
+        self.files_dir.mkdir(parents=True, exist_ok=True)
+        # 1. Clean out all old files
+        for old_f in self.files_dir.glob("*"):
+            if old_f.is_file():
+                try:
+                    old_f.unlink()
+                except Exception:
+                    pass
+        if self.excel_file_path.exists():
+            try:
+                self.excel_file_path.unlink()
+            except Exception:
+                pass
+        backup_path = self.customer_dir / "customers.backup.xlsx"
+        if backup_path.exists():
+            try:
+                backup_path.unlink()
+            except Exception:
+                pass
+
+        # 2. Copy source into files_dir and customers.xlsx
+        safe_name = re.sub(r'[^\w\.-]', '_', filename)
+        target_in_files = self.files_dir / f"file_1_{safe_name}"
+        shutil.copy2(source_path, target_in_files)
+        shutil.copy2(source_path, self.excel_file_path)
+
+        # 3. Parse full workbook
+        info = self.parse_full_workbook(target_in_files, filename)
+
+        # 4. Construct metadata
+        file_sheets = [
+            {**s, "file_id": "file_1", "file_name": filename}
+            for s in info["sheets"]
+        ]
+
+        metadata = {
+            "total_files": 1,
+            "filenames": [filename],
+            "filename": filename,
+            "uploaded_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "sheet_count": len(file_sheets),
+            "total_records": info["total_records"],
+            "customer_count": 0,
+            "files": [
+                {
+                    "file_id": "file_1",
+                    "filename": filename,
+                    "saved_file": f"files/file_1_{safe_name}",
+                    "sheet_count": len(file_sheets),
+                    "records_count": info["total_records"],
+                    "customer_count": info["customer_count"],
+                    "sheets": file_sheets
+                }
+            ],
+            "sheets": file_sheets
+        }
+
+        with open(self.metadata_file_path, 'w', encoding='utf-8') as f:
+            json.dump(metadata, f, indent=2)
+
+        # 5. Invalidate and reload
+        self.invalidate_cache()
+        records, grouped, sheets_meta, loaded_meta = self.load_all_data()
+
+        metadata["customer_count"] = len(grouped)
+        with open(self.metadata_file_path, 'w', encoding='utf-8') as f:
+            json.dump(metadata, f, indent=2)
+
+        return metadata
 
     def rebuild_dataset_metadata(self):
         """
@@ -1283,6 +1479,60 @@ class ExcelDataManager:
                     sheet_dep = sheet_meta.get("sheet_dep", "")
                     sheet_arr = sheet_meta.get("sheet_arr", "")
 
+                    if self._is_passenger_block_sheet(sheet):
+                        _, _, extracted_rows, _, _, _, _, _ = self._parse_passenger_block_sheet(sheet, sheet_name=sheet_name, filename=file_name)
+                        for r_item in extracted_rows:
+                            excel_row_num = r_item["row_number"]
+                            row_data = r_item["data"]
+                            customer_name = row_data.get("NAME", "").strip()
+                            if not customer_name:
+                                continue
+                            norm_name = self.normalize_customer_name(customer_name)
+                            if not norm_name:
+                                continue
+
+                            total_physical_rows += 1
+                            record_id = f"{file_id}_{sheet_name}_row_{excel_row_num}"
+                            row_train = row_data.get("Train No.", "").strip()
+                            row_route = self._resolve_row_route(row_data, "")
+
+                            rec_obj = {
+                                "record_id": record_id,
+                                "file_id": file_id,
+                                "file_name": file_name,
+                                "sheet_name": sheet_name,
+                                "row_number": excel_row_num,
+                                "name": customer_name,
+                                "normalized_name": norm_name,
+                                "train_no": row_train,
+                                "train_route": row_route,
+                                "sheet_date": row_data.get("Date of Journey", ""),
+                                "sheet_dep": row_data.get("Departure", ""),
+                                "sheet_arr": row_data.get("Arrival", ""),
+                                "data": row_data
+                            }
+                            records[record_id] = rec_obj
+                            rec_age = self._normalize_age(row_data.get("AGE"))
+                            rec_sex = self._normalize_sex(row_data.get("SEX"))
+
+                            if norm_name not in raw_customers:
+                                raw_customers[norm_name] = {
+                                    "normalized_name": norm_name,
+                                    "name": customer_name,
+                                    "record_ids": [record_id],
+                                    "records": [rec_obj],
+                                    "ages": {rec_age} if rec_age else set(),
+                                    "sexes": {rec_sex} if rec_sex else set()
+                                }
+                            else:
+                                raw_customers[norm_name]["record_ids"].append(record_id)
+                                raw_customers[norm_name]["records"].append(rec_obj)
+                                if rec_age:
+                                    raw_customers[norm_name]["ages"].add(rec_age)
+                                if rec_sex:
+                                    raw_customers[norm_name]["sexes"].add(rec_sex)
+                        continue
+
                     all_rows = sheet.iter_rows(values_only=False)
                     for row_idx, row in enumerate(all_rows):
                         excel_row_num = row_idx + 1
@@ -1589,16 +1839,29 @@ class ExcelDataManager:
                     canonical_norm = c_norm
                     break
 
-        if canonical_norm not in grouped:
-            return None
-
         grp = grouped[canonical_norm]
         records_output = []
+        missing_data_list = []
 
         for rec in grp["records"]:
             sheet_name = rec["sheet_name"]
             file_id = rec.get("file_id", "file_1")
             file_name = rec.get("file_name", "")
+
+            # If this record is from Missing Data sheet, collect it for missing data panel
+            if "missing data" in sheet_name.lower():
+                missing_fields = rec["data"].get("Missing Field(s)") or rec["data"].get("MISSING FIELD(S)") or ""
+                doj_val = rec["data"].get("Date of Journey") or rec["data"].get("DATE OF JOURNEY") or ""
+                reason_val = rec["data"].get("Reason") or rec["data"].get("REASON") or ""
+                missing_data_list.append({
+                    "record_id": rec["record_id"],
+                    "sheet_name": sheet_name,
+                    "row_number": rec["row_number"],
+                    "missing_fields": missing_fields,
+                    "date_of_journey": doj_val,
+                    "reason": reason_val
+                })
+                continue
 
             # Look up sheet metadata
             meta_key = f"{file_id}_{sheet_name}"
@@ -1688,11 +1951,33 @@ class ExcelDataManager:
                 "row_data": rec["data"]
             })
 
+        # Fallback if only in Missing Data
+        if not records_output and missing_data_list:
+            for md in missing_data_list:
+                records_output.append({
+                    "record_id": md["record_id"],
+                    "file_id": "file_1",
+                    "file_name": "",
+                    "sheet_name": md["sheet_name"],
+                    "row_number": md["row_number"],
+                    "train_no": "",
+                    "train_route": "",
+                    "doj": md["date_of_journey"],
+                    "departure": "",
+                    "arrival": "",
+                    "fields": [
+                        {"key": "MISSING_FIELDS", "label": "Missing Field(s)", "value": md["missing_fields"], "display_value": md["missing_fields"]},
+                        {"key": "REASON", "label": "Reason", "value": md["reason"], "display_value": md["reason"]}
+                    ],
+                    "row_data": {}
+                })
+
         return {
             "name": grp["name"],
             "normalized_name": canonical_norm,
             "record_count": len(records_output),
-            "records": records_output
+            "records": records_output,
+            "missing_data": missing_data_list
         }
 
     def get_record(self, record_id):

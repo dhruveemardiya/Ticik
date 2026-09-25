@@ -264,7 +264,7 @@ def customer_search(request):
     Searches customers across ALL files and sheets by customer NAME ONLY.
     Returns UNIQUE customer names with record_count.
     """
-    query = request.GET.get('name', '').strip()
+    query = (request.GET.get('name') or request.GET.get('query') or request.GET.get('q') or '').strip()
     sheet_name = request.GET.get('sheet', '').strip() or None
 
     if not query:

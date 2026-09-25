@@ -65,7 +65,7 @@ export default function SearchResultsTable({
       <div className="search-table-panel glass-panel">
         {loading ? (
           <div className="table-loading-state">
-            <Loader2 size={36} className="spin-icon text-emerald mb-3" />
+            <Loader2 size={36} className="spin-icon text-sky mb-3" />
             <p className="font-semibold text-primary">Searching customer name across all sheets...</p>
             <span className="text-secondary text-xs">Querying "{query}"</span>
           </div>
@@ -190,7 +190,7 @@ export default function SearchResultsTable({
                             <div className="expanded-record-card">
                               <div className="expanded-header">
                                 <div className="expanded-title-line">
-                                  <UserCheck size={18} className="text-emerald mr-2" />
+                                  <UserCheck size={18} className="text-sky mr-2" />
                                   <strong className="text-primary text-base">
                                     {rec.name}
                                   </strong>
@@ -202,7 +202,7 @@ export default function SearchResultsTable({
                                 <div className="expanded-meta-tags">
                                   {rec.train_no && (
                                     <span className="meta-tag">
-                                      <Train size={12} className="text-emerald mr-1 inline" />
+                                      <Train size={12} className="text-sky mr-1 inline" />
                                       Train: <strong>{rec.train_no}</strong>
                                     </span>
                                   )}

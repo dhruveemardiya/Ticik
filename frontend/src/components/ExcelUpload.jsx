@@ -195,7 +195,7 @@ export default function ExcelUpload({ onSavedSuccessfully }) {
     <div className="upload-container animate-fade-in">
       <div className="upload-header text-center">
         <div className="setup-badge">
-          <Sparkles size={14} className="text-emerald mr-1.5" />
+          <Sparkles size={14} className="text-sky mr-1.5" />
           <span>3 Excel Workbooks Multi-Source Setup</span>
         </div>
         <h1 className="setup-title">Upload Exactly 3 Excel Files</h1>
@@ -236,9 +236,9 @@ export default function ExcelUpload({ onSavedSuccessfully }) {
         <div className="dropzone-content">
           <div className="dropzone-icon-wrapper">
             {uploading ? (
-              <Loader2 size={44} className="spin-icon text-emerald" />
+              <Loader2 size={44} className="spin-icon text-sky" />
             ) : (
-              <UploadCloud size={44} className="text-emerald" />
+              <UploadCloud size={44} className="text-sky" />
             )}
           </div>
 
@@ -315,7 +315,7 @@ export default function ExcelUpload({ onSavedSuccessfully }) {
             <span className="slot-number-badge">FILE 01</span>
             {fileSlot1 ? (
               <span className="slot-status-tag tag-ready">
-                <CheckCircle2 size={13} className="mr-1 text-emerald" /> Selected
+                <CheckCircle2 size={13} className="mr-1 text-sky" /> Selected
               </span>
             ) : (
               <span className="slot-status-tag tag-waiting">Waiting</span>
@@ -324,7 +324,7 @@ export default function ExcelUpload({ onSavedSuccessfully }) {
 
           <div className="slot-body">
             <div className="slot-icon-box">
-              <FileSpreadsheet size={24} className={fileSlot1 ? 'text-emerald' : 'text-muted'} />
+              <FileSpreadsheet size={24} className={fileSlot1 ? 'text-sky' : 'text-muted'} />
             </div>
             <div className="slot-info">
               {fileSlot1 ? (
@@ -393,7 +393,7 @@ export default function ExcelUpload({ onSavedSuccessfully }) {
             <span className="slot-number-badge">FILE 02</span>
             {fileSlot2 ? (
               <span className="slot-status-tag tag-ready">
-                <CheckCircle2 size={13} className="mr-1 text-emerald" /> Selected
+                <CheckCircle2 size={13} className="mr-1 text-sky" /> Selected
               </span>
             ) : (
               <span className="slot-status-tag tag-waiting">Waiting</span>
@@ -402,7 +402,7 @@ export default function ExcelUpload({ onSavedSuccessfully }) {
 
           <div className="slot-body">
             <div className="slot-icon-box">
-              <FileSpreadsheet size={24} className={fileSlot2 ? 'text-emerald' : 'text-muted'} />
+              <FileSpreadsheet size={24} className={fileSlot2 ? 'text-sky' : 'text-muted'} />
             </div>
             <div className="slot-info">
               {fileSlot2 ? (
@@ -471,7 +471,7 @@ export default function ExcelUpload({ onSavedSuccessfully }) {
             <span className="slot-number-badge">FILE 03</span>
             {fileSlot3 ? (
               <span className="slot-status-tag tag-ready">
-                <CheckCircle2 size={13} className="mr-1 text-emerald" /> Selected
+                <CheckCircle2 size={13} className="mr-1 text-sky" /> Selected
               </span>
             ) : (
               <span className="slot-status-tag tag-waiting">Waiting</span>
@@ -480,7 +480,7 @@ export default function ExcelUpload({ onSavedSuccessfully }) {
 
           <div className="slot-body">
             <div className="slot-icon-box">
-              <FileSpreadsheet size={24} className={fileSlot3 ? 'text-emerald' : 'text-muted'} />
+              <FileSpreadsheet size={24} className={fileSlot3 ? 'text-sky' : 'text-muted'} />
             </div>
             <div className="slot-info">
               {fileSlot3 ? (

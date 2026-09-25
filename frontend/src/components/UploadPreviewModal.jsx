@@ -87,19 +87,19 @@ export default function UploadPreviewModal({
         <div className="preview-modal-header">
           <div className="preview-header-info">
             <div className="preview-file-icon">
-              <FileSpreadsheet size={26} className="text-emerald" />
+              <FileSpreadsheet size={26} className="text-sky" />
             </div>
             <div>
               <div className="preview-title-row">
                 <h3 className="preview-modal-title">
                   {total_files > 1 ? `${total_files} Excel Files Preview & Merge` : 'Excel Workbook Preview'}
                 </h3>
-                <span className="badge badge-emerald">Ready to Save & Merge</span>
+                <span className="badge badge-sky">Ready to Save & Merge</span>
               </div>
               <div className="preview-filenames-tags">
                 {(filenames.length > 0 ? filenames : [filename]).map((name, i) => (
                   <span key={i} className="preview-filename-pill" title={name}>
-                    <FileCheck size={12} className="text-cyan mr-1 flex-shrink-0" />
+                    <FileCheck size={12} className="text-sky mr-1 flex-shrink-0" />
                     <span className="truncate">{name}</span>
                   </span>
                 ))}
@@ -120,7 +120,7 @@ export default function UploadPreviewModal({
 
         {/* Safety Banner */}
         <div className="safety-banner">
-          <ShieldCheck size={16} className="text-emerald flex-shrink-0" />
+          <ShieldCheck size={16} className="text-sky flex-shrink-0" />
           <span>
             {total_files > 1
               ? `All ${total_files} files will be permanently saved as separate source workbooks. Customer records will be indexed and grouped without overwriting.`
@@ -140,7 +140,7 @@ export default function UploadPreviewModal({
           <div className="preview-stat-item">
             <span className="preview-stat-label">Total Files</span>
             <span className="preview-stat-val text-primary font-bold">
-              <FileSpreadsheet size={15} className="text-cyan inline mr-1" />
+              <FileSpreadsheet size={15} className="text-sky inline mr-1" />
               {total_files} {total_files === 1 ? 'File' : 'Files'}
             </span>
           </div>
@@ -148,7 +148,7 @@ export default function UploadPreviewModal({
           <div className="preview-stat-item">
             <span className="preview-stat-label">Total Sheets</span>
             <span className="preview-stat-val">
-              <Layers size={15} className="text-cyan inline mr-1" />
+              <Layers size={15} className="text-sky inline mr-1" />
               {sheet_count} Sheets
             </span>
           </div>
@@ -163,7 +163,7 @@ export default function UploadPreviewModal({
           <div className="preview-stat-divider" />
           <div className="preview-stat-item">
             <span className="preview-stat-label">Merged Customers</span>
-            <span className="preview-stat-val text-emerald font-bold">
+            <span className="preview-stat-val text-sky font-bold">
               <Users size={15} className="inline mr-1" />
               {customer_count.toLocaleString()} Unique
             </span>
@@ -171,7 +171,7 @@ export default function UploadPreviewModal({
           <div className="preview-stat-divider" />
           <div className="preview-stat-item">
             <span className="preview-stat-label">Status</span>
-            <span className="preview-stat-val text-emerald font-medium">
+            <span className="preview-stat-val text-sky font-medium">
               <CheckCircle2 size={15} className="inline mr-1" />
               Validated
             </span>

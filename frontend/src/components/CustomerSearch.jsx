@@ -95,7 +95,7 @@ export default function CustomerSearch({
           />
 
           <div className="search-input-actions">
-            {loading && <Loader2 size={16} className="spin-icon text-emerald" />}
+            {loading && <Loader2 size={16} className="spin-icon text-sky" />}
             {query && !loading && (
               <button
                 type="button"
@@ -122,7 +122,7 @@ export default function CustomerSearch({
 
             {loading ? (
               <div className="p-4 text-center text-muted text-xs">
-                <Loader2 size={14} className="spin-icon inline mr-2 text-emerald" />
+                <Loader2 size={14} className="spin-icon inline mr-2 text-sky" />
                 Searching unique customer names...
               </div>
             ) : suggestions.length === 0 ? (
@@ -145,7 +145,7 @@ export default function CustomerSearch({
                       <span className="suggestion-name">{item.name}</span>
                     </div>
                     <div className="suggestion-meta-line">
-                      <span className="suggestion-sub-tag text-emerald">
+                      <span className="suggestion-sub-tag text-sky">
                         {item.record_count} {item.record_count === 1 ? 'record' : 'records'}
                       </span>
                     </div>

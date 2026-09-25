@@ -10,23 +10,27 @@ export default function CustomerListPanel({
   onSheetFilterChange,
   sheets = []
 }) {
+  const visibleSheets = sheets.filter(
+    (s) => !s.name?.toLowerCase().includes('missing data')
+  );
+
   // Group sheets by original file name
-  const groupedSheets = sheets.reduce((acc, s) => {
+  const groupedSheets = visibleSheets.reduce((acc, s) => {
     const fileKey = s.file_name || 'Sheets';
     if (!acc[fileKey]) acc[fileKey] = [];
     acc[fileKey].push(s);
     return acc;
   }, {});
 
-  const totalSheetRecords = sheets.reduce((acc, s) => acc + (s.records_count || 0), 0);
+  const totalSheetRecords = visibleSheets.reduce((acc, s) => acc + (s.records_count || 0), 0);
 
   return (
-    <div className="customer-list-panel glass-panel">
+    <div className="customer-list-panel customer-list-panel-dark">
       {/* Panel Header */}
       <div className="panel-header">
         <div className="panel-title-wrap">
-          <Users size={18} className="text-emerald" />
-          <h3 className="panel-title">Customers</h3>
+          <Users size={18} className="text-sky" />
+          <h3 className="panel-title">Customer Directory</h3>
           <span className="badge badge-neutral ml-auto">
             {customers.length.toLocaleString()} {customers.length === 1 ? 'Customer' : 'Customers'}
           </span>
@@ -35,14 +39,14 @@ export default function CustomerListPanel({
         {/* Sheet Filter Selector (Grouped by File) */}
         <div className="panel-sheet-filter-box">
           <div className="sheet-select-row">
-            <Layers size={13} className="text-cyan flex-shrink-0" />
+            <Layers size={13} className="text-sky flex-shrink-0" />
             <select
               className="sheet-filter-select"
               value={sheetFilter}
               onChange={(e) => onSheetFilterChange(e.target.value)}
               aria-label="Filter by Sheet"
             >
-              <option value="">All Sheets ({sheets.length} sheets • {totalSheetRecords.toLocaleString()} rows)</option>
+              <option value="">All Sheets ({visibleSheets.length} sheet{visibleSheets.length === 1 ? '' : 's'} • {totalSheetRecords.toLocaleString()} rows)</option>
               {Object.entries(groupedSheets).map(([fileName, fileSheets]) => (
                 <optgroup key={fileName} label={`📁 ${fileName}`}>
                   {fileSheets.map((s) => (
@@ -86,7 +90,7 @@ export default function CustomerListPanel({
                     <span className="panel-card-index">{String(idx + 1).padStart(2, '0')}</span>
                     <h5 className="panel-card-name">{c.name}</h5>
                     <div className="panel-card-arrow">
-                      <ChevronRight size={16} className={isSelected ? 'text-emerald' : 'text-dim'} />
+                      <ChevronRight size={16} className={isSelected ? 'text-sky' : 'text-dim'} />
                     </div>
                   </div>
 

@@ -436,7 +436,7 @@ export default function App() {
           {/* Brand Left */}
           <div className="navbar-brand">
             <div className="brand-logo">
-              <FileSpreadsheet size={22} className="text-emerald" />
+              <FileSpreadsheet size={22} className="text-sky" />
             </div>
             <div className="brand-text">
               <h1 className="brand-title">Customer Manager</h1>
@@ -489,7 +489,7 @@ export default function App() {
                   title="Click to view full customer directory"
                   id="btn-open-customers-directory"
                 >
-                  <Users size={14} className="text-emerald flex-shrink-0" />
+                  <Users size={14} className="text-sky flex-shrink-0" />
                   <span>
                     <strong>{customerCount.toLocaleString()} Customers</strong>
                   </span>
@@ -500,7 +500,7 @@ export default function App() {
                 {/* Saved & Ready Status */}
                 <div className="excel-pill excel-pill-status">
                   <span className="status-dot status-dot-active" />
-                  <span className="text-emerald font-semibold">Saved & Ready</span>
+                  <span className="text-sky font-semibold">Saved & Ready</span>
                 </div>
 
                 {/* Upload 3 Files Button */}
@@ -622,7 +622,7 @@ export default function App() {
           <div className="modal-card upload-modal-dialog glass-panel" onClick={(e) => e.stopPropagation()}>
             <div className="modal-dialog-header">
               <div className="flex items-center gap-2">
-                <FileSpreadsheet size={22} className="text-emerald" />
+                <FileSpreadsheet size={22} className="text-sky" />
                 <h3 className="modal-dialog-title">Upload Exactly 3 Excel Files</h3>
               </div>
               <button

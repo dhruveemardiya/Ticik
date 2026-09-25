@@ -79,7 +79,7 @@ export default function DeleteConfirmModal({
                   </span>
                   {record.train_no && (
                     <span className="meta-tag">
-                      <Train size={12} className="text-emerald" /> Train: {record.train_no}
+                      <Train size={12} className="text-sky" /> Train: {record.train_no}
                     </span>
                   )}
                 </div>
