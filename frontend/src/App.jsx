@@ -3,10 +3,12 @@ import ExcelUpload from './components/ExcelUpload';
 import CustomerSearch from './components/CustomerSearch';
 import CustomerListPanel from './components/CustomerListPanel';
 import CustomerDetails from './components/CustomerDetails';
+import ErrorBoundary from './components/ErrorBoundary';
 import CustomerDirectoryModal from './components/CustomerDirectoryModal';
 import UploadPreviewModal from './components/UploadPreviewModal';
 import SearchResultsTable from './components/SearchResultsTable';
 import DeleteConfirmModal from './components/DeleteConfirmModal';
+import LoginPage from './components/LoginPage';
 import {
   FileSpreadsheet,
   Users,
@@ -16,11 +18,22 @@ import {
   FileCheck,
   Loader2,
   Trash2,
-  X
+  X,
+  LogOut
 } from 'lucide-react';
 import './App.css';
 
 export default function App() {
+  // Authentication State
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return !!localStorage.getItem('train_auth_token');
+  });
+
+  const handleLogout = () => {
+    localStorage.removeItem('train_auth_token');
+    setIsAuthenticated(false);
+  };
+
   // System & Connection State
   const [systemStatus, setSystemStatus] = useState(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
@@ -377,6 +390,11 @@ export default function App() {
     );
   }
 
+  // Authentication Gate: Render LoginPage if not authenticated
+  if (!isAuthenticated) {
+    return <LoginPage onLoginSuccess={() => setIsAuthenticated(true)} />;
+  }
+
   const isDataReady = systemStatus && systemStatus.available;
   const sheetCount = systemStatus?.sheet_count || systemStatus?.sheets?.length || 1;
   const customerCount = systemStatus?.customer_count || 0;
@@ -525,6 +543,18 @@ export default function App() {
                 >
                   <Trash2 size={13} className="mr-1 text-rose" /> Delete All Customers
                 </button>
+
+                {/* Logout Button */}
+                <button
+                  type="button"
+                  className="btn-logout ml-1"
+                  onClick={handleLogout}
+                  title="Sign out of system"
+                  id="btn-logout"
+                >
+                  <LogOut size={13} />
+                  <span>Logout</span>
+                </button>
               </div>
             ) : (
               <div className="excel-status-line">
@@ -536,6 +566,16 @@ export default function App() {
                   id="btn-upload-excel"
                 >
                   <Upload size={14} className="mr-1.5" /> Upload 3 Files
+                </button>
+                <button
+                  type="button"
+                  className="btn-logout ml-2"
+                  onClick={handleLogout}
+                  title="Sign out of system"
+                  id="btn-logout"
+                >
+                  <LogOut size={13} />
+                  <span>Logout</span>
                 </button>
               </div>
             )}
@@ -577,12 +617,14 @@ export default function App() {
 
               {/* Right Column: Customer Details (Starts completely EMPTY on load; shows all records when customer selected) */}
               <div className="workspace-right-col">
-                <CustomerDetails
-                  customerData={selectedCustomerData}
-                  loading={loadingRecord}
-                  onRecordDeleted={handleRecordDeleted}
-                  onCustomerDeleted={handleCustomerEntirelyDeleted}
-                />
+                <ErrorBoundary>
+                  <CustomerDetails
+                    customerData={selectedCustomerData}
+                    loading={loadingRecord}
+                    onRecordDeleted={handleRecordDeleted}
+                    onCustomerDeleted={handleCustomerEntirelyDeleted}
+                  />
+                </ErrorBoundary>
               </div>
             </div>
           </div>

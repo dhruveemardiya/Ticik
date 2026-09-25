@@ -101,6 +101,8 @@ class ExcelDataManager:
         self.customer_dir.mkdir(parents=True, exist_ok=True)
         self.temp_dir.mkdir(parents=True, exist_ok=True)
         self.files_dir.mkdir(parents=True, exist_ok=True)
+        self.photos_dir = self.customer_dir / 'photos'
+        self.photos_dir.mkdir(parents=True, exist_ok=True)
 
         self.excel_file_path = self.customer_dir / 'customers.xlsx'
         self.metadata_file_path = self.customer_dir / 'metadata.json'
@@ -110,6 +112,7 @@ class ExcelDataManager:
         self._cached_name_to_cluster = None
         self._cached_sheets_meta = None
         self._cached_metadata = None
+        self._cached_customer_profiles = None
 
     @classmethod
     def get_instance(cls):
@@ -1972,10 +1975,14 @@ class ExcelDataManager:
                     "row_data": {}
                 })
 
+        profile = self.get_customer_profile(canonical_norm)
         return {
             "name": grp["name"],
             "normalized_name": canonical_norm,
             "record_count": len(records_output),
+            "address": profile.get("address", "—"),
+            "contact_no": profile.get("contact_no", "—"),
+            "passport_photo": profile.get("passport_photo"),
             "records": records_output,
             "missing_data": missing_data_list
         }
@@ -2334,9 +2341,124 @@ class ExcelDataManager:
             except Exception:
                 pass
 
+    def get_customer_profiles(self):
+        """
+        Parses HRDW WITH PH NO..xlsx to extract Address, Contact No., and Passport Photo.
+        Maps each customer by intelligent matching to active customers.
+        Caches results in memory.
+        """
+        if self._cached_customer_profiles is not None:
+            return self._cached_customer_profiles
+
+        profiles = {}
+        hrdw_path = Path(r'f:\Train\HRDW WITH PH NO..xlsx')
+        if not hrdw_path.exists():
+            hrdw_path = Path(settings.BASE_DIR).parent / 'HRDW WITH PH NO..xlsx'
+
+        if not hrdw_path.exists():
+            self._cached_customer_profiles = {}
+            return self._cached_customer_profiles
+
+        try:
+            wb = openpyxl.load_workbook(hrdw_path, data_only=True)
+            if 'Sheet1' not in wb.sheetnames:
+                wb.close()
+                self._cached_customer_profiles = {}
+                return self._cached_customer_profiles
+
+            ws = wb['Sheet1']
+            images_by_row = {}
+            for img in getattr(ws, '_images', []):
+                anchor = img.anchor
+                r = anchor._from.row if hasattr(anchor, '_from') else anchor.from_.row
+                images_by_row[r] = img._data()
+
+            rows = list(ws.iter_rows(values_only=True))
+            wb.close()
+
+            self.photos_dir.mkdir(parents=True, exist_ok=True)
+            records, grouped, sheets_meta, metadata = self.load_all_data()
+
+            KNOWN_VARIATIONS = {
+                "deepti r chudasama": "dipti rajeshbhai chudasama",
+                "induben j chudasama": "indumatiben jayantilal chudasama",
+                "sobhaben a jadav": "shobhanaben ashvinbhai jadav",
+                "darshnaben p chudasama": "darshanaben paresh chavda",
+                "pareshbhai k chavada": "pareshbhai karshanbhai chavda",
+                "nisha a chudasama": "nishaben a chudasma",
+                "pravina h chudasama": "pravina hiteshbhai chudasama",
+                "rajubhai d chudasama": "rajubhai dayaljibhai chudasama",
+                "dipaben r chudasama": "dipaben rajubhai chudasama"
+            }
+
+            for idx in range(1, len(rows)):
+                r = rows[idx]
+                if not r or not any(r):
+                    continue
+                cell_c = str(r[2]).strip() if len(r) > 2 and r[2] else ""
+                mobile = str(r[3]).strip() if len(r) > 3 and r[3] else ""
+                if mobile.endswith('.0'):
+                    mobile = mobile[:-2]
+
+                lines = [l.strip() for l in cell_c.split('\n') if l.strip()]
+                if not lines:
+                    continue
+                raw_name = lines[0]
+                address = ", ".join(lines[1:]) if len(lines) > 1 else ""
+
+                h_norm = self.normalize_customer_name(raw_name)
+
+                target_norm = KNOWN_VARIATIONS.get(h_norm)
+                if not target_norm or target_norm not in grouped:
+                    if h_norm in grouped:
+                        target_norm = h_norm
+                    else:
+                        for c_norm, c_grp in grouped.items():
+                            if h_norm in c_grp.get("normalized_aliases", []):
+                                target_norm = c_norm
+                                break
+                        if not target_norm:
+                            for c_norm, c_grp in grouped.items():
+                                if self.are_names_similar(raw_name, c_grp["name"]):
+                                    target_norm = c_norm
+                                    break
+
+                if target_norm:
+                    img_bytes = images_by_row.get(idx)
+                    photo_url = None
+                    if img_bytes:
+                        safe_slug = re.sub(r'[^\w\-]', '_', target_norm)
+                        photo_file = self.photos_dir / f"{safe_slug}.jpg"
+                        if not photo_file.exists():
+                            with open(photo_file, 'wb') as pf:
+                                pf.write(img_bytes)
+                        photo_url = f"/media/customer_data/photos/{safe_slug}.jpg"
+
+                    profiles[target_norm] = {
+                        "address": address or "—",
+                        "contact_no": mobile or "—",
+                        "passport_photo": photo_url
+                    }
+
+            self._cached_customer_profiles = profiles
+        except Exception as e:
+            print(f"Error loading customer profiles: {e}")
+            self._cached_customer_profiles = {}
+
+        return self._cached_customer_profiles
+
+    def get_customer_profile(self, canonical_norm):
+        profiles = self.get_customer_profiles()
+        return profiles.get(canonical_norm, {
+            "address": "—",
+            "contact_no": "—",
+            "passport_photo": None
+        })
+
     def invalidate_cache(self):
         self._cached_records = None
         self._cached_grouped_customers = None
         self._cached_name_to_cluster = None
         self._cached_sheets_meta = None
         self._cached_metadata = None
+        self._cached_customer_profiles = None

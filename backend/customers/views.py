@@ -3,11 +3,12 @@ import json
 import uuid
 from pathlib import Path
 from django.conf import settings
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 import openpyxl
 from .excel_service import ExcelDataManager
+from .auth_service import AuthService
 
 excel_manager = ExcelDataManager.get_instance()
 
@@ -400,3 +401,82 @@ def delete_all_customers_view(request):
         })
     except Exception as e:
         return JsonResponse({"error": f"Failed to delete all customers: {str(e)}"}, status=500)
+
+@require_http_methods(["GET"])
+def customer_photo(request):
+    """
+    GET /api/customers/photo/?name=<CustomerName>
+    Directly streams customer passport photo JPEG.
+    """
+    name = request.GET.get('name', '').strip()
+    if not name:
+        return JsonResponse({"error": "name parameter is required."}, status=400)
+
+    try:
+        norm = excel_manager.normalize_customer_name(name)
+        canonical_norm = excel_manager._cached_name_to_cluster.get(norm, norm) if excel_manager._cached_name_to_cluster else norm
+        profile = excel_manager.get_customer_profile(canonical_norm)
+        photo_url = profile.get("passport_photo")
+        if not photo_url:
+            raise Http404("Passport photo not available for this customer.")
+
+        slug = photo_url.split('/')[-1]
+        photo_path = excel_manager.photos_dir / slug
+        if not photo_path.exists():
+            raise Http404("Photo file not found.")
+
+        with open(photo_path, 'rb') as f:
+            return HttpResponse(f.read(), content_type="image/jpeg")
+    except Http404 as e:
+        raise e
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def auth_login(request):
+    """
+    POST /api/customers/auth/login/
+    Validates password against stored PBKDF2 hash.
+    """
+    try:
+        data = json.loads(request.body.decode('utf-8')) if request.body else {}
+    except Exception:
+        data = request.POST
+
+    password = data.get('password', '')
+    auth = AuthService.get_instance()
+    if auth.check_password(password):
+        token = auth.create_token()
+        return JsonResponse({
+            "success": True,
+            "token": token,
+            "message": "Login successful"
+        })
+    else:
+        return JsonResponse({
+            "success": False,
+            "error": "Incorrect password. Please try again."
+        }, status=401)
+
+@csrf_exempt
+@require_http_methods(["POST", "GET"])
+def auth_verify(request):
+    """
+    POST /api/customers/auth/verify/
+    Verifies if active session token is still valid.
+    """
+    token = None
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body.decode('utf-8')) if request.body else {}
+            token = data.get('token')
+        except Exception:
+            token = request.POST.get('token')
+    if not token:
+        token = request.GET.get('token')
+
+    auth = AuthService.get_instance()
+    is_valid = auth.verify_token(token) if token else False
+    return JsonResponse({"authenticated": is_valid})
+

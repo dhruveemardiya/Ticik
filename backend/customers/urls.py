@@ -16,4 +16,7 @@ urlpatterns = [
     path('all/', views.delete_all_customers_view, name='customer-delete-all'),
     path('delete_all/', views.delete_all_customers_view, name='customer-delete-all-alias'),
     path('replace/', views.customer_replace, name='customer-replace'),
+    path('photo/', views.customer_photo, name='customer-photo'),
+    path('auth/login/', views.auth_login, name='auth-login'),
+    path('auth/verify/', views.auth_verify, name='auth-verify'),
 ]

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Layers,
   Hash,
@@ -24,6 +24,15 @@ export default function CustomerDetails({
   const [customerToDelete, setCustomerToDelete] = useState(null);
   const [copiedRecordId, setCopiedRecordId] = useState(null);
   const [copiedAll, setCopiedAll] = useState(false);
+  const [photoSrc, setPhotoSrc] = useState(customerData?.passport_photo || null);
+
+  const fallbackPhotoUrl = customerData?.name
+    ? `/api/customers/photo/?name=${encodeURIComponent(customerData.name)}`
+    : null;
+
+  useEffect(() => {
+    setPhotoSrc(customerData?.passport_photo || null);
+  }, [customerData?.passport_photo, customerData?.name]);
 
   // Helper: Format Time (handles 11.25 -> 11:25, 4.5 -> 04:30, or '26/9/2026- 4:50' -> 04:50)
   const formatTime = (val) => {
@@ -135,12 +144,17 @@ export default function CustomerDetails({
       if (commonAadhaar) break;
     }
 
-    // COMMON INFO — show only once: Customer Name, Age, Sex/Gender, Aadhaar No.
+    // COMMON INFO — show only once: Customer Name, Age, Sex/Gender, Aadhaar No., Contact No., Address
+    const contactNo = customerData.contact_no || '—';
+    const address = customerData.address || '—';
+
     const commonList = [
       { key: 'CUSTOMER_NAME', label: 'Customer Name', value: customerName || '—' },
       { key: 'AGE', label: 'Age', value: commonAge || '—' },
       { key: 'GENDER', label: 'Sex/Gender', value: commonGender || '—' },
-      { key: 'AADHAAR', label: 'Aadhaar No.', value: commonAadhaar || '—' }
+      { key: 'AADHAAR', label: 'Aadhaar No.', value: commonAadhaar || '—' },
+      { key: 'CONTACT_NO', label: 'Contact No.', value: contactNo },
+      { key: 'ADDRESS', label: 'Address', value: address, isAddress: true }
     ];
 
     // Helper: Resolve DEP (Departure Time + Location)
@@ -349,7 +363,8 @@ export default function CustomerDetails({
     );
   }
 
-  const { name, record_count } = customerData;
+  const { name = '', record_count = 0 } = customerData || {};
+  const customerName = (name || '').trim();
 
   const handleCopyRecord = (rec) => {
     const lines = [
@@ -446,13 +461,47 @@ export default function CustomerDetails({
             </div>
 
             <div className="customer-info-card">
-              <div className="customer-info-grid">
-                {commonFields.map((field) => (
-                  <div key={field.key} className="info-cell">
-                    <span className="info-cell-label">{field.label}</span>
-                    <span className="info-cell-value">{field.value}</span>
+              <div className="customer-common-layout">
+                {/* Passport Photo Frame */}
+                <div className="passport-photo-container">
+                  <div className="passport-photo-frame">
+                    {photoSrc ? (
+                      <img
+                        src={photoSrc}
+                        alt={`${customerName} Passport Photo`}
+                        className="passport-photo-img"
+                        onError={() => {
+                          if (photoSrc !== fallbackPhotoUrl && fallbackPhotoUrl) {
+                            setPhotoSrc(fallbackPhotoUrl);
+                          } else {
+                            setPhotoSrc(null);
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div className="passport-photo-placeholder">
+                        <User size={36} className="passport-photo-icon" />
+                        <span className="passport-photo-empty-dash">—</span>
+                      </div>
+                    )}
                   </div>
-                ))}
+                  <span className="passport-photo-label">Passport Photo</span>
+                </div>
+
+                {/* Common Info Grid */}
+                <div className="customer-info-grid-wrap">
+                  <div className="customer-info-grid">
+                    {commonFields.map((field) => (
+                      <div
+                        key={field.key}
+                        className={`info-cell ${field.isAddress ? 'info-cell-address' : ''}`}
+                      >
+                        <span className="info-cell-label">{field.label}</span>
+                        <span className="info-cell-value">{field.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
