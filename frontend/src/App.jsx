@@ -15,7 +15,6 @@ import {
   Upload,
   AlertTriangle,
   RotateCw,
-  FileCheck,
   Loader2,
   Trash2,
   X,
@@ -50,6 +49,7 @@ export default function App() {
   const [customerList, setCustomerList] = useState([]);
   const [loadingList, setLoadingList] = useState(false);
   const [sheetFilter, setSheetFilter] = useState('');
+  const [mobileDirectoryOpen, setMobileDirectoryOpen] = useState(false);
 
   // Modals & Upload State
   const [showDirectoryModal, setShowDirectoryModal] = useState(false);
@@ -140,6 +140,7 @@ export default function App() {
   const handleSelectCustomer = async (customerName) => {
     if (!customerName) return;
     setSelectedCustomerName(customerName);
+    setMobileDirectoryOpen(false);
     setLoadingRecord(true);
 
     try {
@@ -461,77 +462,10 @@ export default function App() {
             </div>
           </div>
 
-          {/* Top-Right Excel Status Area — Redesigned ONE-LINE */}
+          {/* Top-Right Excel Status Area */}
           <div className="navbar-excel-bar">
             {isDataReady ? (
               <div className="excel-status-line">
-                {/* Total Files Badge */}
-                <div
-                  className="excel-pill excel-pill-filename cursor-pointer"
-                  title={
-                    systemStatus.filenames && systemStatus.filenames.length > 0
-                      ? systemStatus.filenames.join('\n')
-                      : systemStatus.filename
-                  }
-                  onClick={() => setShowUploadModal(true)}
-                >
-                  <FileCheck size={14} className="text-cyan flex-shrink-0" />
-                  <span className="file-name-truncate font-semibold">
-                    {systemStatus.total_files > 1
-                      ? `${systemStatus.total_files} Excel Files`
-                      : systemStatus.filename}
-                  </span>
-                </div>
-
-                <span className="excel-separator">•</span>
-
-                {/* Sheets Count */}
-                <span className="excel-meta-text">
-                  {sheetCount} {sheetCount === 1 ? 'Sheet' : 'Sheets'}
-                </span>
-
-                <span className="excel-separator">•</span>
-
-                {/* Total Records Count */}
-                <span className="excel-meta-text">
-                  {(systemStatus.total_records || 0).toLocaleString()} Records
-                </span>
-
-                <span className="excel-separator">•</span>
-
-                {/* Clickable Customer Count */}
-                <button
-                  type="button"
-                  className="excel-pill excel-pill-clickable"
-                  onClick={() => setShowDirectoryModal(true)}
-                  title="Click to view full customer directory"
-                  id="btn-open-customers-directory"
-                >
-                  <Users size={14} className="text-sky flex-shrink-0" />
-                  <span>
-                    <strong>{customerCount.toLocaleString()} Customers</strong>
-                  </span>
-                </button>
-
-                <span className="excel-separator">•</span>
-
-                {/* Saved & Ready Status */}
-                <div className="excel-pill excel-pill-status">
-                  <span className="status-dot status-dot-active" />
-                  <span className="text-sky font-semibold">Saved & Ready</span>
-                </div>
-
-                {/* Upload 3 Files Button */}
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm btn-upload-topright"
-                  onClick={() => setShowUploadModal(true)}
-                  title="Upload 3 Excel workbooks"
-                  id="btn-upload-excel"
-                >
-                  <Upload size={14} className="mr-1.5" /> Upload 3 Files
-                </button>
-
                 {/* Delete All Customers Button */}
                 <button
                   type="button"
@@ -559,14 +493,6 @@ export default function App() {
             ) : (
               <div className="excel-status-line">
                 <span className="badge badge-neutral">No Excel Files Configured</span>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm btn-upload-topright ml-3"
-                  onClick={() => setShowUploadModal(true)}
-                  id="btn-upload-excel"
-                >
-                  <Upload size={14} className="mr-1.5" /> Upload 3 Files
-                </button>
                 <button
                   type="button"
                   className="btn-logout ml-2"
@@ -600,8 +526,28 @@ export default function App() {
               onSelectCustomer={handleSelectFromSearch}
             />
 
+            {/* Mobile Only: Customer Directory Trigger Button */}
+            {!mobileDirectoryOpen && (
+              <div className="mobile-directory-trigger-bar">
+                <button
+                  type="button"
+                  className="mobile-directory-toggle-btn"
+                  onClick={() => setMobileDirectoryOpen(true)}
+                  id="btn-mobile-open-directory"
+                >
+                  <div className="mobile-directory-btn-left">
+                    <Users size={16} className="text-sky mr-2" />
+                    <span className="font-semibold text-white">Customer Directory</span>
+                  </div>
+                  <span className="badge badge-sky">
+                    {customerList.length.toLocaleString()} Customers
+                  </span>
+                </button>
+              </div>
+            )}
+
             {/* Standard Two-Column Desktop Responsive Workspace (Requirements 7, 8, 9, 31, 38, 39, 40) */}
-            <div className="two-column-workspace">
+            <div className={`two-column-workspace ${mobileDirectoryOpen ? 'mobile-show-directory' : 'mobile-show-details'}`}>
               {/* Left Column: Unique Customer Cards List with Sheet Filter */}
               <div className="workspace-left-col">
                 <CustomerListPanel
@@ -612,17 +558,19 @@ export default function App() {
                   sheetFilter={sheetFilter}
                   onSheetFilterChange={handleSheetFilterChange}
                   sheets={systemStatus?.sheets || []}
+                  onBackMobile={() => setMobileDirectoryOpen(false)}
                 />
               </div>
 
               {/* Right Column: Customer Details (Starts completely EMPTY on load; shows all records when customer selected) */}
               <div className="workspace-right-col">
-                <ErrorBoundary>
+                <ErrorBoundary resetKey={selectedCustomerName}>
                   <CustomerDetails
                     customerData={selectedCustomerData}
                     loading={loadingRecord}
                     onRecordDeleted={handleRecordDeleted}
                     onCustomerDeleted={handleCustomerEntirelyDeleted}
+                    onOpenMobileDirectory={() => setMobileDirectoryOpen(true)}
                   />
                 </ErrorBoundary>
               </div>

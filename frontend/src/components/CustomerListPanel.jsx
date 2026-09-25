@@ -1,63 +1,35 @@
 import React from 'react';
-import { Users, User, ChevronRight, Layers, FileSpreadsheet } from 'lucide-react';
+import { Users, User, ChevronRight, ArrowLeft } from 'lucide-react';
 
 export default function CustomerListPanel({
   customers = [],
   selectedCustomerName,
   onSelectCustomer,
   loading = false,
-  sheetFilter = '',
-  onSheetFilterChange,
-  sheets = []
+  onBackMobile
 }) {
-  const visibleSheets = sheets.filter(
-    (s) => !s.name?.toLowerCase().includes('missing data')
-  );
-
-  // Group sheets by original file name
-  const groupedSheets = visibleSheets.reduce((acc, s) => {
-    const fileKey = s.file_name || 'Sheets';
-    if (!acc[fileKey]) acc[fileKey] = [];
-    acc[fileKey].push(s);
-    return acc;
-  }, {});
-
-  const totalSheetRecords = visibleSheets.reduce((acc, s) => acc + (s.records_count || 0), 0);
-
   return (
     <div className="customer-list-panel customer-list-panel-dark">
       {/* Panel Header */}
       <div className="panel-header">
         <div className="panel-title-wrap">
+          {onBackMobile && (
+            <button
+              type="button"
+              className="btn btn-secondary btn-xs btn-mobile-back"
+              onClick={onBackMobile}
+              title="Back to Details"
+              aria-label="Back"
+            >
+              <ArrowLeft size={14} className="text-sky mr-1" />
+              <span>Back</span>
+            </button>
+          )}
           <Users size={18} className="text-sky" />
           <h3 className="panel-title">Customer Directory</h3>
           <span className="badge badge-neutral ml-auto">
             {customers.length.toLocaleString()} {customers.length === 1 ? 'Customer' : 'Customers'}
           </span>
-        </div>
-
-        {/* Sheet Filter Selector (Grouped by File) */}
-        <div className="panel-sheet-filter-box">
-          <div className="sheet-select-row">
-            <Layers size={13} className="text-sky flex-shrink-0" />
-            <select
-              className="sheet-filter-select"
-              value={sheetFilter}
-              onChange={(e) => onSheetFilterChange(e.target.value)}
-              aria-label="Filter by Sheet"
-            >
-              <option value="">All Sheets ({visibleSheets.length} sheet{visibleSheets.length === 1 ? '' : 's'} • {totalSheetRecords.toLocaleString()} rows)</option>
-              {Object.entries(groupedSheets).map(([fileName, fileSheets]) => (
-                <optgroup key={fileName} label={`📁 ${fileName}`}>
-                  {fileSheets.map((s) => (
-                    <option key={`${s.file_id || ''}_${s.name}`} value={s.name}>
-                      {s.name} ({s.records_count} records)
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          </div>
         </div>
       </div>
 
@@ -83,7 +55,12 @@ export default function CustomerListPanel({
                 <div
                   key={c.normalized_name || c.name}
                   className={`panel-customer-card ${isSelected ? 'panel-card-selected' : ''}`}
-                  onClick={() => onSelectCustomer(c.name)}
+                  onClick={() => {
+                    onSelectCustomer(c.name);
+                    if (onBackMobile) {
+                      onBackMobile();
+                    }
+                  }}
                   title={`Click to view all ${c.record_count} Excel records for ${c.name}`}
                 >
                   <div className="panel-card-header">

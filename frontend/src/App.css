@@ -1907,6 +1907,19 @@ html, body {
   line-height: 1.5;
 }
 
+/* Mobile Directory Toggle Controls (Desktop: hidden) */
+.mobile-directory-trigger-bar {
+  display: none;
+}
+
+.btn-mobile-back {
+  display: none;
+}
+
+.mobile-only-inline-btn {
+  display: none;
+}
+
 /* RESPONSIVE DESIGN (Requirements 1, 11) */
 @media (max-width: 1024px) {
   html, body, #root {
@@ -1932,7 +1945,66 @@ html, body {
     height: auto;
     min-height: auto;
     overflow: visible;
-    gap: 14px;
+    gap: 12px;
+  }
+
+  /* Mobile Customer Directory Bar */
+  .mobile-directory-trigger-bar {
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .mobile-directory-toggle-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: #0f1d38;
+    border: 1px solid #1e3a5f;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    transition: all 0.2s ease;
+  }
+
+  .mobile-directory-toggle-btn:hover,
+  .mobile-directory-toggle-btn:active {
+    background: #16294d;
+    border-color: #38bdf8;
+  }
+
+  .mobile-directory-btn-left {
+    display: flex;
+    align-items: center;
+    font-size: 0.95rem;
+  }
+
+  .btn-mobile-back {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #e2e8f0;
+    background: #16294d;
+    border: 1px solid #1e3a5f;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    margin-right: 8px;
+    transition: all 0.15s ease;
+  }
+
+  .btn-mobile-back:hover,
+  .btn-mobile-back:active {
+    background: #1e3a5f;
+    border-color: #38bdf8;
+    color: #38bdf8;
+  }
+
+  .mobile-only-inline-btn {
+    display: inline-flex;
+    align-items: center;
   }
 
   .two-column-workspace {
@@ -1944,17 +2016,38 @@ html, body {
     gap: 16px;
   }
 
+  /* When directory is closed on mobile: show only details */
+  .two-column-workspace.mobile-show-details .workspace-left-col {
+    display: none !important;
+  }
+
+  .two-column-workspace.mobile-show-details .workspace-right-col {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  /* When directory is open on mobile: show only directory, hide details */
+  .two-column-workspace.mobile-show-directory .workspace-left-col {
+    display: flex !important;
+    width: 100% !important;
+    height: calc(100vh - 190px) !important;
+    min-height: 480px !important;
+    max-height: none !important;
+  }
+
+  .two-column-workspace.mobile-show-directory .customer-list-panel,
+  .two-column-workspace.mobile-show-directory .customer-list-panel-dark {
+    height: 100% !important;
+    max-height: none !important;
+  }
+
+  .two-column-workspace.mobile-show-directory .workspace-right-col {
+    display: none !important;
+  }
+
   .workspace-left-col {
     height: auto;
     overflow: visible;
-  }
-
-  .customer-list-panel,
-  .customer-list-panel-dark {
-    height: 350px;
-    min-height: 280px;
-    max-height: 380px;
-    overflow: hidden;
   }
 
   .workspace-right-col {

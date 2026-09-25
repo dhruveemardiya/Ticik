@@ -1,14 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
-  Layers,
-  Hash,
   Trash2,
   Copy,
   Check,
-  UserCheck,
-  Search,
-  FileSpreadsheet,
   User,
+  Users,
   Ticket,
   ArrowLeft
 } from 'lucide-react';
@@ -18,7 +14,8 @@ export default function CustomerDetails({
   customerData,
   loading = false,
   onRecordDeleted,
-  onCustomerDeleted
+  onCustomerDeleted,
+  onOpenMobileDirectory
 }) {
   const [recordToDelete, setRecordToDelete] = useState(null);
   const [customerToDelete, setCustomerToDelete] = useState(null);
@@ -355,10 +352,22 @@ export default function CustomerDetails({
         <p className="empty-state-text">
           Choose a customer from the list to view their records.
         </p>
-        <div className="empty-state-hint-pill">
-          <ArrowLeft size={13} className="text-sky mr-1.5 flex-shrink-0 animate-bounce-x" />
-          <span>Select from Customer Directory on the left</span>
-        </div>
+        {onOpenMobileDirectory ? (
+          <button
+            type="button"
+            className="empty-state-hint-pill cursor-pointer"
+            onClick={onOpenMobileDirectory}
+            title="Open Customer Directory"
+          >
+            <Users size={14} className="text-sky mr-1.5 flex-shrink-0" />
+            <span>Open Customer Directory</span>
+          </button>
+        ) : (
+          <div className="empty-state-hint-pill">
+            <ArrowLeft size={13} className="text-sky mr-1.5 flex-shrink-0 animate-bounce-x" />
+            <span>Select from Customer Directory on the left</span>
+          </div>
+        )}
       </div>
     );
   }
@@ -413,33 +422,34 @@ export default function CustomerDetails({
             <h2 className="details-customer-name">{name}</h2>
           </div>
           <div className="details-header-right">
-            <div className="details-record-count-badge">
-              <FileSpreadsheet size={15} className="mr-1.5 text-sky inline flex-shrink-0" />
-              <span className="font-semibold text-sky">
-                {record_count} {record_count === 1 ? 'Excel Record' : 'Excel Records'}
-              </span>
-            </div>
+            {onOpenMobileDirectory && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-xs mobile-only-inline-btn mr-2"
+                onClick={onOpenMobileDirectory}
+                title="Open Customer Directory"
+              >
+                <Users size={13} className="text-sky mr-1" /> Directory
+              </button>
+            )}
             <button
               type="button"
-              className="btn btn-secondary btn-xs ml-2"
+              className="btn btn-secondary btn-xs"
               onClick={handleCopyAll}
-              title="Copy all customer records to clipboard"
+              title={copiedAll ? "Copied all customer records" : "Copy all customer records to clipboard"}
+              aria-label="Copy all customer records"
             >
               {copiedAll ? (
-                <>
-                  <Check size={12} className="text-sky mr-1" /> Copied All
-                </>
+                <Check size={14} className="text-sky" />
               ) : (
-                <>
-                  <Copy size={12} className="mr-1" /> Copy All
-                </>
+                <Copy size={14} />
               )}
             </button>
             <button
               type="button"
               className="btn btn-danger-soft btn-xs ml-2"
               onClick={() => setCustomerToDelete(customerData)}
-              title={`Permanently delete all ${record_count} records for ${name} across all sheets`}
+              title={`Permanently delete all records for ${name} across all sheets`}
               id="btn-delete-customer"
             >
               <Trash2 size={12} className="mr-1 text-rose" /> Delete Customer
@@ -511,11 +521,11 @@ export default function CustomerDetails({
         <div className="excel-records-section">
           <div className="section-label-bar">
             <div className="section-title-wrap">
-              <FileSpreadsheet size={14} className="text-sky mr-1.5 flex-shrink-0" />
+              <Ticket size={14} className="text-sky mr-1.5 flex-shrink-0" />
               <span className="section-title">RECORD INFO</span>
             </div>
             <span className="section-subtitle">
-              {recordsWithSpecificFields.length} individual Excel rows
+              {recordsWithSpecificFields.length} {recordsWithSpecificFields.length === 1 ? 'Record' : 'Records'}
             </span>
           </div>
 
@@ -531,22 +541,6 @@ export default function CustomerDetails({
                       <span className="record-badge-index">
                         RECORD {String(idx + 1).padStart(2, '0')}
                       </span>
-                      {rec.file_name && (
-                        <span className="record-source-tag record-file-tag" title={`Source File: ${rec.file_name}`}>
-                          <FileSpreadsheet size={12} className="inline mr-1 text-sky" /> {rec.file_name}
-                        </span>
-                      )}
-                      <span className="record-source-tag">
-                        <Layers size={12} className="inline mr-1 text-sky" /> {rec.sheet_name}
-                      </span>
-                      <span className="record-source-tag">
-                        <Hash size={12} className="inline mr-1 text-muted" /> Row {rec.row_number}
-                      </span>
-                      {rec.train_no && (
-                        <span className="record-source-tag font-semibold text-sky">
-                          Train {rec.train_no}
-                        </span>
-                      )}
                     </div>
 
                     <div className="record-header-actions">
@@ -554,25 +548,23 @@ export default function CustomerDetails({
                         type="button"
                         className="btn btn-secondary btn-xs"
                         onClick={() => handleCopyRecord(rec)}
-                        title="Copy this record's details to clipboard"
+                        title={isCopied ? "Copied" : "Copy record details"}
+                        aria-label="Copy record"
                       >
                         {isCopied ? (
-                          <>
-                            <Check size={12} className="text-sky mr-1" /> Copied
-                          </>
+                          <Check size={13} className="text-sky" />
                         ) : (
-                          <>
-                            <Copy size={12} className="mr-1" /> Copy Record
-                          </>
+                          <Copy size={13} />
                         )}
                       </button>
                       <button
                         type="button"
                         className="btn btn-danger-soft btn-xs"
                         onClick={() => setRecordToDelete(rec)}
-                        title={`Delete Row ${rec.row_number} in ${rec.sheet_name}`}
+                        title="Delete record"
+                        aria-label="Delete record"
                       >
-                        <Trash2 size={12} className="mr-1 text-rose" /> Delete Record
+                        <Trash2 size={13} className="text-rose" />
                       </button>
                     </div>
                   </div>
